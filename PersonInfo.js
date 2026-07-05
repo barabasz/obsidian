@@ -1,6 +1,10 @@
 /**
  * PersonInfo
  *
+ * autor: github.com/barabasz/
+ * repo: https://github.com/barabasz/obsidian
+ * wersja: 2027-07-05 rev. 2
+ *
  * Klasa pomocnicza do renderowania informacji o osobie w Obsidianie.
  * Wymaga pluginów: CustomJS, Dataview oraz DataviewJS.
  *
