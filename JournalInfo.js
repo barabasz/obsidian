@@ -1,6 +1,9 @@
 /**
  * JournalInfo
  * 
+ * autor: github.com/barabasz/
+ * repo: https://github.com/barabasz/obsidian
+ * wersja: 2027-07-05 rev. 1
  *
  * Klasa pomocnicza do renderowania informacji o wpisach dziennika w Obsidianie.
  * Wymaga pluginów: CustomJS, Dataview oraz DataviewJS.
