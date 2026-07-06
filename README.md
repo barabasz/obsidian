@@ -4,6 +4,8 @@ Scripts and templates for Obsidian
 
 ## Journal
 
+Journal-type note automation framework for Obsidian.
+
 Requirements: [Templater](https://github.com/SilentVoid13/Templater), [CustomJS](https://github.com/saml-dev/obsidian-custom-js), and [DataView](https://blacksmithgu.github.io/obsidian-dataview/).
 
 * [JournalInfo.js](JournalInfo.js) - automatic generation of header and footer for journal entries based on front-matter metadata
@@ -12,6 +14,8 @@ Requirements: [Templater](https://github.com/SilentVoid13/Templater), [CustomJS]
 
 ## Person
 
-Requirements: [Templater](https://github.com/SilentVoid13/Templater) and [CustomJS](https://github.com/saml-dev/obsidian-custom-js).
+Person-type note automation framework for Obsidian.
+
+Requirements: [Templater](https://github.com/SilentVoid13/Templater), [CustomJS](https://github.com/saml-dev/obsidian-custom-js), and [DataView](https://blacksmithgu.github.io/obsidian-dataview/).
 
 * [PersonInfo.js](PersonInfo.js) - automatic generation of header and footer for person-type notes based on front-matter metadata
