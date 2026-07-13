@@ -1,12 +1,13 @@
 /**
  * JournalInfo
- * 
+ *
  * autor: github.com/barabasz/
  * repo: https://github.com/barabasz/obsidian
- * wersja: 2027-07-05 rev. 1
+ * wersja: 2026-07-13 rev. 5
  *
  * Klasa pomocnicza do renderowania informacji o wpisach dziennika w Obsidianie.
- * Wymaga pluginów: CustomJS, Dataview oraz DataviewJS.
+ * Wymaga pluginów: CustomJS oraz Dataview.
+ * Korzysta z bloków dataviewjs i JavaScript API pluginu Dataview.
  *
  * Użycie na górze notatki:
  *
@@ -28,19 +29,14 @@ class JournalInfo {
     init(dv) {
         this.root = 'Journal';
         this.locale = 'pl';
-        this.dv = dv;
-        this.current = dv.current();
-        this.file = this.current.file;
-        this.fm = this.file.frontmatter ?? {};
-        this.title = this.file.name;
-        this.kind = this.getKind();
-        this.date = this.getDateForCurrentNote();
 
         this.defaults = {
-            year: '2024',
+            year: '2024',       // rok przestępny używany dla stron typu MM i MM-DD
+            regularYear: '2023', // zwykły rok pomocniczy do liczenia dnia roku
             month: '01',
             day: '01',
             sort: 'asc',
+            birthday: '1979-06-14',
         };
 
         this.symbols = {
@@ -49,6 +45,14 @@ class JournalInfo {
             right: ' →',
             sep: ' • ',
         };
+
+        this.dv = dv;
+        this.current = dv.current();
+        this.file = this.current.file;
+        this.fm = this.file.frontmatter ?? {};
+        this.title = this.file.name;
+        this.kind = this.getKind();
+        this.date = this.getDateForCurrentNote();
 
         moment.locale(this.locale);
     }
@@ -59,9 +63,7 @@ class JournalInfo {
     async printInfo(dv) {
         this.init(dv);
 
-        const output = this.getInfoOutput();
-
-        this.dv.el('div', output, { cls: 'file-journal-info' });
+        this.dv.el('div', this.getInfoOutput(), { cls: 'file-journal-info' });
     }
 
     /**
@@ -70,9 +72,7 @@ class JournalInfo {
     async printDataview(dv) {
         this.init(dv);
 
-        const output = this.getDataviewOutput();
-
-        this.dv.el('div', output, { cls: 'file-journal-dataview' });
+        this.dv.el('div', this.getDataviewOutput(), { cls: 'file-journal-dataview' });
     }
 
     /**
@@ -80,18 +80,18 @@ class JournalInfo {
      */
     getInfoOutput() {
         switch (this.kind) {
-            case 'day':
-                return this.dayInfo();
-            case 'month':
-                return this.monthInfo();
-            case 'thisDay':
-                return this.thisDayInfo();
-            case 'thisMonth':
-                return this.thisMonthInfo();
-            case 'year':
-                return this.yearInfo();
             case 'journal':
                 return this.journalInfo();
+            case 'year':
+                return this.yearInfo();
+            case 'month':
+                return this.monthInfo();
+            case 'day':
+                return this.dayInfo();
+            case 'thisMonth':
+                return this.thisMonthInfo();
+            case 'thisDay':
+                return this.thisDayInfo();
             default:
                 return this.unsupportedInfoMessage('printInfo');
         }
@@ -102,18 +102,18 @@ class JournalInfo {
      */
     getDataviewOutput() {
         switch (this.kind) {
-            case 'day':
-                return this.dayDataview();
-            case 'month':
-                return this.monthDataview();
-            case 'thisDay':
-                return this.thisDayDataview();
-            case 'thisMonth':
-                return this.thisMonthDataview();
-            case 'year':
-                return this.yearDataview();
             case 'journal':
                 return this.journalDataview();
+            case 'year':
+                return this.yearDataview();
+            case 'month':
+                return this.monthDataview();
+            case 'day':
+                return this.dayDataview();
+            case 'thisMonth':
+                return this.thisMonthDataview();
+            case 'thisDay':
+                return this.thisDayDataview();
             default:
                 return this.unsupportedInfoMessage('printDataview');
         }
@@ -128,11 +128,11 @@ class JournalInfo {
         }
 
         const kindsByTitleLength = {
-            2: 'thisMonth',  // 01         - miesiąc dowolnego roku
-            4: 'year',       // 2024       - konkretny rok
-            5: 'thisDay',    // 01-01      - dzień miesiaca dowolnego roku
-            7: 'month',      // 2024-01    - konkretny miesiąc danego roku
-            10: 'day',       // 2024-01-01 - konkretny dzień danego roku
+            2: 'thisMonth', // 01         - miesiąc dowolnego roku
+            4: 'year',      // 2024       - konkretny rok
+            5: 'thisDay',   // 01-01      - dzień miesiąca dowolnego roku
+            7: 'month',     // 2024-01    - konkretny miesiąc danego roku
+            10: 'day',      // 2024-01-01 - konkretny dzień danego roku
         };
 
         return kindsByTitleLength[this.title.length] ?? 'unknown';
@@ -144,17 +144,17 @@ class JournalInfo {
     getDateForCurrentNote() {
         switch (this.kind) {
             case 'day':
-                return moment(this.title);
+                return moment(this.title, 'YYYY-MM-DD', true);
             case 'month':
-                return moment(`${this.title}-01`);
-            case 'thisDay':
-                return moment(`2024-${this.title}`);
-            case 'thisMonth':
-                return moment(`2024-${this.title}-01`);
+                return moment(`${this.title}-01`, 'YYYY-MM-DD', true);
             case 'year':
-                return moment(`${this.title}-01-01`);
+                return moment(`${this.title}-01-01`, 'YYYY-MM-DD', true);
+            case 'thisDay':
+                return moment(`${this.defaults.year}-${this.title}`, 'YYYY-MM-DD', true);
+            case 'thisMonth':
+                return moment(`${this.defaults.year}-${this.title}-01`, 'YYYY-MM-DD', true);
             case 'journal':
-                return moment('2024-01-01');
+                return moment(`${this.defaults.year}-01-01`, 'YYYY-MM-DD', true);
             default:
                 return moment.invalid();
         }
@@ -173,7 +173,8 @@ class JournalInfo {
      * Zmienia pierwszą literę tekstu na wielką.
      */
     capitalizeFirst(text) {
-        return String(text).charAt(0).toUpperCase() + String(text).slice(1);
+        const value = String(text);
+        return value.charAt(0).toUpperCase() + value.slice(1);
     }
 
     /**
@@ -197,17 +198,24 @@ class JournalInfo {
     }
 
     /**
-     * Tworzy link do pliku przez API Dataview.
+     * Tworzy link do istniejącego pliku przez API Dataview.
      */
     fileLink(page, display = null) {
         return this.dv.fileLink(page.file.path, false, display ?? page.file.name);
     }
 
     /**
-     * Tworzy link do istniejącej albo potencjalnej notatki.
+     * Tworzy link wiki do istniejącej albo potencjalnej notatki.
      */
     wikiLink(path, display = null) {
         return `[[${path}|${display ?? path.split('/').pop()}]]`;
+    }
+
+    /**
+     * Tworzy link do rocznej notatki Journal/YYYY/YYYY.
+     */
+    yearLink(year, display = null) {
+        return this.wikiLink(`${this.root}/${year}/${year}`, display ?? year);
     }
 
     /**
@@ -230,20 +238,6 @@ class JournalInfo {
     }
 
     /**
-     * Sortuje strony po ścieżce pliku.
-     */
-    sortByPath(pages) {
-        return pages.sort((a, b) => a.file.path.localeCompare(b.file.path));
-    }
-
-    /**
-     * Sortuje strony po nazwie pliku.
-     */
-    sortByName(pages) {
-        return pages.sort((a, b) => a.file.name.localeCompare(b.file.name));
-    }
-
-    /**
      * Odmienia słowo „wpis” dla podanej liczby.
      */
     sayWpisy(count) {
@@ -263,6 +257,28 @@ class JournalInfo {
         }
 
         return 'wpisów';
+    }
+
+    /**
+     * Odmienia frazę „notatka dzienna”.
+     */
+    sayNotatkiDzienne(count) {
+        const lastOne = count % 10;
+        const lastTwo = count % 100;
+
+        if (count === 1) {
+            return 'notatka dzienna';
+        }
+
+        if (lastTwo >= 12 && lastTwo <= 14) {
+            return 'notatek dziennych';
+        }
+
+        if (lastOne >= 2 && lastOne <= 4) {
+            return 'notatki dzienne';
+        }
+
+        return 'notatek dziennych';
     }
 
     /**
@@ -351,20 +367,29 @@ class JournalInfo {
     }
 
     /**
-     * Sprawdza święta dla daty rocznej i stałej daty miesięcznej.
+     * Zwraca stronę stałego dnia, np. Journal/07/07-05.
+     */
+    getFixedDayPage(month, day) {
+        const monthPadded = String(month).padStart(2, '0');
+        const dayPadded = String(day).padStart(2, '0');
+        const path = `${this.root}/${monthPadded}/${monthPadded}-${dayPadded}`;
+
+        return this.dv.page(path);
+    }
+
+    /**
+     * Zwraca święta dla daty rocznej i stałej daty miesięcznej.
      */
     getHolidays(year, month, day) {
         const yearPadded = String(year);
         const monthPadded = String(month).padStart(2, '0');
         const dayPadded = String(day).padStart(2, '0');
 
-        const fixedDayPath = `${this.root}/${monthPadded}/${monthPadded}-${dayPadded}`;
+        const fixedDay = this.getFixedDayPage(monthPadded, dayPadded);
         const yearDayPath = `${this.root}/${yearPadded}/${yearPadded}-${monthPadded}/${yearPadded}-${monthPadded}-${dayPadded}`;
+        const yearDay = this.dv.page(yearDayPath);
 
         const holidays = [];
-
-        const fixedDay = this.dv.page(fixedDayPath);
-        const yearDay = this.dv.page(yearDayPath);
 
         if (fixedDay?.holiday) {
             holidays.push(fixedDay.holiday);
@@ -385,6 +410,81 @@ class JournalInfo {
     }
 
     /**
+     * Renderuje informacje dla głównej strony Journal.
+     */
+    journalInfo() {
+        const referenceYear = this.date.format('YYYY');
+        const years = this.journalPagesByKind('year')
+            .map(page => Number(page.file.name))
+            .filter(Boolean)
+            .sort((a, b) => a - b);
+
+        return [
+            `**Wpisy wg lat**: ${this.yearJournalLinks(years)}`,
+            '',
+            '',
+            `**Wpisy wg miesięcy**: ${this.monthJournalLinks(referenceYear)}`,
+        ].join('\n');
+    }
+
+    /**
+     * Tworzy linki do rocznych spisów Journalu.
+     */
+    yearJournalLinks(years) {
+        return years.map(year => {
+            const count = this.countDayPagesInYear(year);
+            const link = this.yearLink(year);
+
+            return count > 0 ? `${link} (${count})` : link;
+        }).join(this.symbols.sep);
+    }
+
+    /**
+     * Tworzy linki do stałych miesięcznych spisów Journalu.
+     */
+    monthJournalLinks(referenceYear) {
+        const links = [];
+
+        for (let i = 1; i <= 12; i++) {
+            const month = String(i).padStart(2, '0');
+            const date = moment(`${referenceYear}-${month}-01`, 'YYYY-MM-DD', true);
+            const count = this.countDayPagesInMonth(i);
+            const link = this.wikiLink(`${this.root}/${month}/${month}`, date.format('MMMM'));
+
+            links.push(count > 0 ? `${link} (${count})` : link);
+        }
+
+        return links.join(this.symbols.sep);
+    }
+
+    /**
+     * Renderuje dane dla strony roku.
+     */
+    yearInfo() {
+        const year = this.date.format('YYYY');
+        const allPages = this.countDayPagesInYear(year);
+        const monthLinks = [];
+
+        for (let i = 1; i <= 12; i++) {
+            const month = String(i).padStart(2, '0');
+            const date = moment(`${year}-${month}-01`, 'YYYY-MM-DD', true);
+            const count = this.countDayPagesInYearMonth(year, month);
+            const link = this.wikiLink(`${this.root}/${year}/${year}-${month}/${year}-${month}`, date.format('MMMM'));
+
+            monthLinks.push(count > 0 ? `${link} (${count})` : link);
+        }
+
+        return `**${allPages} ${this.sayWpisy(allPages)}**: ${monthLinks.join(this.symbols.sep)}`;
+    }
+
+    /**
+     * Renderuje dane dla strony miesiąca konkretnego roku.
+     */
+    monthInfo() {
+        return this.makeMonthCalendar();
+    }
+
+    /**
      * Renderuje kalendarz miesiąca.
      */
     makeMonthCalendar() {
@@ -392,7 +492,7 @@ class JournalInfo {
         const month = String(this.fm.month ?? this.date.format('MM')).padStart(2, '0');
         const daysInMonth = Number(this.fm.days ?? this.date.daysInMonth());
 
-        const firstDay = moment(`${year}-${month}-01`);
+        const firstDay = moment(`${year}-${month}-01`, 'YYYY-MM-DD', true);
         const firstDayDow = firstDay.isoWeekday();
 
         let calendar = '<table class="file-journal-month-calendar"><tr>';
@@ -450,89 +550,6 @@ class JournalInfo {
     }
 
     /**
-     * Renderuje informacje dla głównej strony Journal.
-     */
-    journalInfo() {
-        const year = this.date.format('YYYY');
-        const years = this.journalPagesByKind('year')
-            .map(page => Number(page.file.name))
-            .filter(Boolean)
-            .sort((a, b) => a - b);
-
-        const yearLinks = this.yearJournalLinks(years);
-        const monthLinks = this.monthJournalLinks(year);
-
-        return [
-            `**Wpisy wg lat**: ${yearLinks}`,
-            '',
-            '',
-            `**Wpisy wg miesięcy**: ${monthLinks}`,
-        ].join('\n');
-    }
-
-    /**
-     * Tworzy linki do rocznych spisów Journalu.
-     */
-    yearJournalLinks(years) {
-        if (!years.length) {
-            return '';
-        }
-
-        return years.map(year => {
-            const count = this.countDayPagesInYear(year);
-            const link = this.wikiLink(`${this.root}/${year}/${year}`, year);
-
-            return count > 0 ? `${link} (${count})` : link;
-        }).join(this.symbols.sep);
-    }
-
-    /**
-     * Tworzy linki do stałych miesięcznych spisów Journalu.
-     */
-    monthJournalLinks(referenceYear) {
-        const links = [];
-
-        for (let i = 1; i <= 12; i++) {
-            const month = String(i).padStart(2, '0');
-            const date = moment(`${referenceYear}-${month}-01`);
-            const count = this.countDayPagesInMonth(i);
-            const link = this.wikiLink(`${this.root}/${month}/${month}`, date.format('MMMM'));
-
-            links.push(count > 0 ? `${link} (${count})` : link);
-        }
-
-        return links.join(this.symbols.sep);
-    }
-
-    /**
-     * Renderuje dane dla strony roku.
-     */
-    yearInfo() {
-        const year = this.date.format('YYYY');
-        const allPages = this.countDayPagesInYear(year);
-
-        const monthLinks = [];
-
-        for (let i = 1; i <= 12; i++) {
-            const month = String(i).padStart(2, '0');
-            const date = moment(`${year}-${month}-01`);
-            const count = this.countDayPagesInYearMonth(year, month);
-            const link = this.wikiLink(`${this.root}/${year}/${year}-${month}/${year}-${month}`, date.format('MMMM'));
-
-            monthLinks.push(count > 0 ? `${link} (${count})` : link);
-        }
-
-        return `**${allPages} ${this.sayWpisy(allPages)}**: ${monthLinks.join(this.symbols.sep)}`;
-    }
-
-    /**
-     * Renderuje dane dla strony miesiąca konkretnego roku.
-     */
-    monthInfo() {
-        return this.makeMonthCalendar();
-    }
-
-    /**
      * Renderuje dane dla strony dnia.
      */
     dayInfo() {
@@ -540,16 +557,14 @@ class JournalInfo {
         const month = this.date.format('MM');
         const day = this.date.format('DD');
 
-        const parts = [
+        return [
             this.weatherInfo(),
             this.sunInfo(),
             this.moonInfo(),
             this.holidayInfo(year, month, day),
             this.dayOfYearInfo(),
             this.lifeDayInfo(),
-        ].filter(Boolean);
-
-        return parts.join('');
+        ].filter(Boolean).join('');
     }
 
     /**
@@ -606,7 +621,7 @@ class JournalInfo {
     }
 
     /**
-     * Renderuje święta dla danego dnia.
+     * Renderuje święta dla konkretnego dnia roku.
      */
     holidayInfo(year, month, day) {
         const holidays = this.getHolidays(year, month, day);
@@ -633,21 +648,61 @@ class JournalInfo {
     }
 
     /**
-     * Renderuje numer dnia życia, jeśli istnieje.
+     * Zwraca datę urodzenia używaną do liczenia wieku.
      */
-    lifeDayInfo() {
-        return this.fm.lifedays ? `${this.fm.lifedays}. dzień życia` : '';
+    birthDate() {
+        return moment(this.defaults.birthday, 'YYYY-MM-DD', true);
     }
 
     /**
-     * Renderuje dane dla stałej strony dnia, np. 01-01.
+     * Renderuje numer dnia życia i wiek, jeśli istnieje.
      */
-    thisDayInfo() {
-        return [
-            `Rodzaj: ${this.kind}, data: ${this.date.format('YYYY-MM-DD')}`,
-            `CSS: file-journal-info`,
-            'Informacja o tym dniu (święta)',
-        ].join('\n');
+    lifeDayInfo() {
+        if (!this.fm.lifedays) {
+            return '';
+        }
+
+        const age = this.decimalAgeOnDate(this.date);
+
+        if (age === null) {
+            return `${this.fm.lifedays}. dzień życia`;
+        }
+
+        return `${this.fm.lifedays}. dzień życia (${this.formatDecimalAge(age)} lat)`;
+    }
+
+    /**
+     * Liczy wiek dziesiętny tak, aby pełne lata zmieniały się dopiero w urodziny.
+     */
+    decimalAgeOnDate(date) {
+        const currentDate = moment(date);
+        const birthDate = this.birthDate();
+
+        if (!currentDate.isValid() || !birthDate.isValid()) {
+            return null;
+        }
+
+        let fullYears = currentDate.diff(birthDate, 'years');
+
+        const lastBirthday = birthDate.clone().add(fullYears, 'years');
+        const nextBirthday = birthDate.clone().add(fullYears + 1, 'years');
+
+        const daysSinceLastBirthday = currentDate.diff(lastBirthday, 'days');
+        const daysBetweenBirthdays = nextBirthday.diff(lastBirthday, 'days');
+
+        const yearProgress = daysSinceLastBirthday / daysBetweenBirthdays;
+
+        return fullYears + yearProgress;
+    }
+
+    /**
+     * Formatuje wiek dziesiętny po polsku.
+     * Obcina do jednego miejsca po przecinku, żeby wiek nie zaokrąglał się przed urodzinami.
+     */
+    formatDecimalAge(age) {
+        const truncated = Math.floor(age * 10) / 10;
+
+        return truncated.toFixed(1).replace('.', ',');
     }
 
     /**
@@ -658,7 +713,6 @@ class JournalInfo {
         const monthInt = Number(month);
         const monthPath = `${this.root}/${month}/${month}`;
         const daysInMonth = this.date.daysInMonth();
-
         const links = [];
 
         for (let i = 1; i <= daysInMonth; i++) {
@@ -685,6 +739,76 @@ class JournalInfo {
     }
 
     /**
+     * Renderuje dane dla stałej strony dnia, np. 01-01.
+     */
+    thisDayInfo() {
+        const month = this.date.format('MM');
+        const day = this.date.format('DD');
+
+        return [
+            this.fixedHolidayInfo(month, day),
+            this.dayOfYearForFixedDayInfo(month, day),
+            this.fixedDayNotesCountInfo(month, day),
+        ].filter(Boolean).join('');
+    }
+
+    /**
+     * Renderuje stałe święta i obchody dla uniwersalnego dnia, np. 07-05.
+     * Dane są brane wyłącznie z notatki Journal/MM/MM-DD.
+     */
+    fixedHolidayInfo(month, day) {
+        const page = this.getFixedDayPage(month, day);
+
+        if (!page) {
+            return '';
+        }
+
+        const items = [
+            page.holiday ? `<span class="holiday">${page.holiday}</span>` : '',
+            page.celebration ? page.celebration : '',
+        ].filter(Boolean);
+
+        return items.length ? `${items.join(', ')}, ` : '';
+    }
+
+    /**
+     * Renderuje numer dnia roku dla stałej daty.
+     */
+    dayOfYearForFixedDayInfo(month, day) {
+        const monthPadded = String(month).padStart(2, '0');
+        const dayPadded = String(day).padStart(2, '0');
+
+        const regularDate = moment(`${this.defaults.regularYear}-${monthPadded}-${dayPadded}`, 'YYYY-MM-DD', true);
+        const leapDate = moment(`${this.defaults.year}-${monthPadded}-${dayPadded}`, 'YYYY-MM-DD', true);
+
+        if (!leapDate.isValid()) {
+            return '';
+        }
+
+        if (!regularDate.isValid()) {
+            return `${leapDate.dayOfYear()} dzień roku przestępnego, `;
+        }
+
+        const regularDoy = regularDate.dayOfYear();
+        const leapDoy = leapDate.dayOfYear();
+
+        const leapSuffix = leapDoy !== regularDoy
+            ? ` (${leapDoy} przestępnego)`
+            : '';
+
+        return `${regularDoy} dzień roku${leapSuffix}, `;
+    }
+
+    /**
+     * Renderuje liczbę konkretnych notatek dziennych dla danego dnia i miesiąca.
+     */
+    fixedDayNotesCountInfo(month, day) {
+        const count = this.countDayPagesOnMonthDay(month, day);
+
+        return `${count} ${this.sayNotatkiDzienne(count)}`;
+    }
+
+    /**
      * Renderuje dolną sekcję dla głównej strony Journal.
      */
     journalDataview() {
@@ -702,39 +826,12 @@ class JournalInfo {
         const year = this.date.format('YYYY');
 
         const sections = [
-            this.yearHolidaysSection(year),
             this.yearMonthsSection(year),
             this.yearBirthdaysSection(year),
             this.yearDeathdaysSection(year),
         ].filter(Boolean);
 
         return sections.join('') || 'brak danych do wyświetlenia';
-    }
-
-    /**
-     * Renderuje sekcję świąt wolnych od pracy dla roku.
-     */
-    yearHolidaysSection(year) {
-        const items = this.yearHolidayPages(year).map(page => {
-            const month = String(page.month).padStart(2, '0');
-            const day = String(page.day).padStart(2, '0');
-            const display = `${month}-${day}`;
-
-            return `${this.dv.fileLink(page.file.path, false, display)}: ${page.holiday}`;
-        });
-
-        return this.renderSection(`Święta wolne od pracy (${items.length})`, items);
-    }
-
-    /**
-     * Zwraca strony świąt z danego roku.
-     */
-    yearHolidayPages(year) {
-        return this.dv
-            .pages(`"${this.root}/${year}"`)
-            .where(page => page.holiday)
-            .sort(page => page.file.name, this.defaults.sort)
-            .array();
     }
 
     /**
@@ -748,7 +845,8 @@ class JournalInfo {
             .sort(page => page.file.path, this.defaults.sort)
             .array()
             .map(page => {
-                const monthName = page.monthname ?? moment(`${year}-${String(page.month).padStart(2, '0')}-01`).format('MMMM');
+                const month = String(page.month).padStart(2, '0');
+                const monthName = page.monthname ?? moment(`${year}-${month}-01`, 'YYYY-MM-DD', true).format('MMMM');
 
                 return `${this.dv.fileLink(page.file.path, false, monthName)}: ${page.summary}`;
             });
@@ -781,19 +879,20 @@ class JournalInfo {
     }
 
     /**
-     * Formatuje osobę w sekcji rocznej daty urodzenia/śmierci.
+     * Formatuje osobę w rocznej sekcji dat urodzenia albo śmierci.
      */
     formatYearPersonDate(page, field) {
         const date = page[field];
+
+        const year = String(date.year);
         const month = String(date.month).padStart(2, '0');
         const day = String(date.day).padStart(2, '0');
-        const year = String(date.year);
-        const dateName = `${year}-${month}-${day}`;
-        const display = `${month}-${day}`;
 
+        const datePath = `${this.root}/${year}/${year}-${month}/${year}-${month}-${day}`;
+        const display = `${month}-${day}`;
         const maidenName = page.maidenname ? ` (${page.maidenname})` : '';
 
-        return `${this.dv.fileLink(dateName, false, display)}: ${this.fileLink(page)}${maidenName}`;
+        return `${this.dv.fileLink(datePath, false, display)}: ${this.fileLink(page)}${maidenName}`;
     }
 
     /**
@@ -814,7 +913,6 @@ class JournalInfo {
             .map(page => {
                 const day = page.day ?? page.file.frontmatter?.day ?? Number(page.file.name.slice(-2));
                 const shortName = page.shortname ?? page.file.frontmatter?.shortname ?? '';
-
                 const dayLink = this.dv.fileLink(page.file.path, false, String(day));
                 const label = shortName
                     ? `**${dayLink}** (${shortName})`
@@ -840,6 +938,61 @@ class JournalInfo {
             .map(page => this.fileLink(page));
 
         return this.renderSection('Backlinks', items);
+    }
+
+    /**
+     * Renderuje dolną sekcję dla stałej strony miesiąca, np. 01.
+     */
+    thisMonthDataview() {
+        const month = this.date.format('MM');
+
+        const sections = [
+            this.fixedHolidaysSection(month),
+            this.onThisMonthSection(month),
+        ].filter(Boolean);
+
+        return sections.join('') || 'brak danych do wyświetlenia';
+    }
+
+    /**
+     * Renderuje stałe święta i obchody danego miesiąca.
+     */
+    fixedHolidaysSection(month) {
+        const items = this.dv
+            .pages(`"${this.root}/${month}"`)
+            .where(page => page.holiday || page.celebration)
+            .sort(page => page.file.path, this.defaults.sort)
+            .array()
+            .map(page => {
+                const day = String(page.day ?? page.file.name.slice(-2));
+                const parts = [
+                    page.holiday ? `<span class="red cm-strong">${page.holiday}</span>` : '',
+                    page.celebration ?? '',
+                ].filter(Boolean);
+
+                return `${this.dv.fileLink(page.file.path, false, day)}: ${parts.join(', ')}`;
+            });
+
+        return this.renderSection('Stałe święta', items);
+    }
+
+    /**
+     * Renderuje podsumowania tego miesiąca rok po roku.
+     */
+    onThisMonthSection(month) {
+        const monthInt = Number(month);
+        const heading = `${this.capitalizeFirst(this.date.locale(this.locale).format('MMMM'))} rok po roku`;
+
+        const items = this.journalPagesByKind('month')
+            .filter(page => Number(page.month) === monthInt)
+            .sort((a, b) => a.file.path.localeCompare(b.file.path))
+            .map(page => {
+                const year = page.year ?? page.file.name.slice(0, 4);
+
+                return `${this.dv.fileLink(page.file.path, false, year)}${page.summary ? `: ${page.summary}` : ''}`;
+            });
+
+        return this.renderSection(heading, items);
     }
 
     /**
@@ -889,7 +1042,7 @@ class JournalInfo {
                     return this.fileLink(page);
                 }
 
-                return `${this.dv.fileLink(String(page.birthdate.year), false, String(page.birthdate.year))}: ${this.fileLink(page)}`;
+                return `${this.yearLink(page.birthdate.year)}: ${this.fileLink(page)}`;
             });
 
         return this.renderSection('Urodzili się', items);
@@ -904,64 +1057,9 @@ class JournalInfo {
             .filter(page => Number(page.deathdate.month) === Number(month))
             .filter(page => Number(page.deathdate.day) === Number(day))
             .sort((a, b) => this.compareDates(a.deathdate, b.deathdate))
-            .map(page => `${this.dv.fileLink(String(page.deathdate.year), false, String(page.deathdate.year))}: ${this.fileLink(page)}`);
+            .map(page => `${this.yearLink(page.deathdate.year)}: ${this.fileLink(page)}`);
 
         return this.renderSection('Zmarli', items);
-    }
-
-    /**
-     * Renderuje dolną sekcję dla stałej strony miesiąca, np. 01.
-     */
-    thisMonthDataview() {
-        const month = this.date.format('MM');
-
-        const sections = [
-            this.fixedHolidaysSection(month),
-            this.onThisMonthSection(month),
-        ].filter(Boolean);
-
-        return sections.join('') || 'brak danych do wyświetlenia';
-    }
-
-    /**
-     * Renderuje stałe święta i obchody danego miesiąca.
-     */
-    fixedHolidaysSection(month) {
-        const items = this.dv
-            .pages(`"${this.root}/${month}"`)
-            .where(page => page.holiday || page.celebration)
-            .sort(page => page.file.path, this.defaults.sort)
-            .array()
-            .map(page => {
-                const day = String(page.day ?? page.file.name.slice(-2));
-                const parts = [
-                    page.holiday ? `<span class='red cm-strong'>${page.holiday}</span>` : '',
-                    page.celebration ?? '',
-                ].filter(Boolean);
-
-                return `${this.dv.fileLink(page.file.path, false, day)}: ${parts.join(', ')}`;
-            });
-
-        return this.renderSection('Stałe święta', items);
-    }
-
-    /**
-     * Renderuje podsumowania tego miesiąca rok po roku.
-     */
-    onThisMonthSection(month) {
-        const monthInt = Number(month);
-        const heading = `${this.capitalizeFirst(this.date.locale(this.locale).format('MMMM'))} rok po roku`;
-
-        const items = this.journalPagesByKind('month')
-            .filter(page => Number(page.month) === monthInt)
-            .sort((a, b) => a.file.path.localeCompare(b.file.path))
-            .map(page => {
-                const year = page.year ?? page.file.name.slice(0, 4);
-
-                return `${this.dv.fileLink(page.file.path, false, year)}${page.summary ? `: ${page.summary}` : ''}`;
-            });
-
-        return this.renderSection(heading, items);
     }
 
     /**
